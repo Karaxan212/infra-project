@@ -221,3 +221,89 @@ $ git push -u origin main
 ```
 
 Настроил имя, почту и ветку по умолчанию, склонировал пустой репозиторий по SSH. Первым коммитом добавил только файл `.gitignore` со строками `.env`, `*.log`, `*.retry`.
+
+## Задание 5.1. Отмена изменений и правка коммита
+
+```
+$ echo "# лишняя строка" >> docker/Dockerfile
+$ git restore docker/Dockerfile
+$ git status
+On branch main
+nothing to commit, working tree clean
+
+$ git commit -m "docs: updte readme"
+$ git commit --amend -m "docs: update readme"
+$ git push
+```
+
+`git restore` вернул `Dockerfile` к состоянию последнего коммита, лишняя строка пропала. Опечатку в сообщении коммита исправил через `--amend` до `git push`, поэтому на сервере коммита с `updte` нет (в истории есть только `9da4c78 docs: update readme`).
+
+## Задание 5.2. Отмена опубликованного коммита
+
+```
+$ git commit -m "chore: remove *.log from .gitignore"
+[main 3882f1c] chore: remove *.log from .gitignore
+$ git push
+$ git revert 3882f1c --no-edit
+$ git push
+$ cat .gitignore
+.env
+*.log
+*.retry
+$ git log --oneline -4
+(вставьте вывод)
+```
+
+Для коммита, который уже отправлен на сервер, используют `revert`, потому что другие люди могли получить эту историю. Удаление коммита потребовало бы переписать историю и сделать force-push, что ломает чужие копии репозитория. `revert` создаёт новый коммит, который отменяет изменение, и историю не переписывает.
+
+## Задание 4.1. Собрать и запустить образ
+
+Отредактирован `docker/index.html` и добавлен `EXPOSE 80` в `docker/Dockerfile`.
+
+Сборка образа и запуск контейнера:
+$ docker build -t infra-web:1.0 docker/
+Successfully tagged infra-web:1.0$ docker run -d --name infra-web -p 8080:80 infra-web:1.0
+$curl http://localhost:8080$ docker rm -f infra-web
+В `README.md` добавлен раздел «Запуск в Docker». Изменения отправлены через ветку `feature/docker-page` и слиты с `main` через Merge Request.
+
+## Задание 5.1. Отмена изменений и правка коммита
+$ echo "# лишняя строка" >> docker/Dockerfile
+$git restore docker/Dockerfile$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+nothing to commit, working tree clean$ git commit -m "docs: updte readme"
+$ git commit --amend -m "docs: update readme"
+$ git push
+`git restore` вернул `Dockerfile` к состоянию последнего коммита, лишняя строка пропала. Опечатку в сообщении коммита исправил через `--amend` до `git push`, поэтому на сервере коммита с `updte` нет (в истории есть только `9da4c78 docs: update readme`).
+
+## Задание 5.2. Отмена опубликованного коммита
+$ git commit -m "chore: remove *.log from .gitignore"
+[main 3882f1c] chore: remove *.log from .gitignore
+$git push$ git revert 3882f1c --no-edit
+$git push$ cat .gitignore
+.env
+*.log
+*.retry
+$ git log --oneline -4
+ae19c50 (HEAD -> main, origin/main, origin/HEAD) Revert "chore: remove *.log from .gitignore"
+3882f1c chore: remove *.log from .gitignore
+9da4c78 docs: update readme
+c4fbb0e Merge pull request #2 from Karaxan212/feature/docker-page
+Для коммита, который уже отправлен на сервер, используют `revert`, потому что другие люди могли получить эту историю. Удаление коммита потребовало бы переписать историю и сделать force-push, что ломает чужие копии репозитория. `revert` создаёт новый коммит, который отменяет изменение, и историю не переписывает.
+
+## Задание 5.3. Контрольные вопросы
+
+1. **Что такое коммит и зачем нужна область индекса (staging area)?**
+   *Коммит* — это снимок (фиксированное состояние) файлов репозитория на определённый момент времени. *Область индекса (staging area)* нужна для подготовки коммита: она позволяет выбирать и группировать только нужные изменения перед их сохранением в историю.
+
+2. **Что такое ветка в Git?**
+   *Ветка* — это подвижный указатель на конкретный коммит. Ветки позволяют вести разработку функционала или исправление ошибок изолированно, не нарушая стабильность основной ветки (`main`).
+
+3. **Что такое HEAD?**
+   *HEAD* — это указатель на текущее рабочее состояние репозитория (как правило, на ветку, в которой вы находитесь, или на конкретный коммит).
+
+4. **Чем git fetch отличается от git pull?**
+   `git fetch` загружает новые данные из удалённого репозитория, но не объединяет их с вашим локальным кодом. `git pull` выполняет `git fetch`, а затем автоматически сливает (`git merge`) полученные изменения в текущую ветку.
+
+5. **Почему файл .env нельзя добавлять в репозиторий?**
+   Файл `.env` содержит секретные и конфигурационные данные (пароли к БД, API-ключи, токены). Их коммит в репозиторий приводит к утечке секретов, что создает серьёзную угрозу безопасности.
